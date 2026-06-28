@@ -1,0 +1,183 @@
+/**
+ * CivicGrid — Screen 5: AI Chatbot
+ * Full-screen chat interface similar to WhatsApp/AI messengers
+ * Chat bubbles for User and AI
+ * Text input field with Microphone icon for speech input
+ */
+import { useState, useEffect, useRef } from 'react'
+import useStore from '../../store/useStore.js'
+
+const SYSTEM_INTRO = {
+  sender: 'ai',
+  text: 'Welcome to the CivicGrid Intelligent Assistant.\n\nI can assist you with details regarding:\n- Incident reporting guidelines\n- Civic Trust score metrics\n- Active ticket tracking\n- Municipal SLA timelines',
+  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+const CHAT_LOGIC = [
+  { keywords: ['report', 'how to', 'upload'], reply: 'To report an issue, navigate to the Dashboard and click the primary "Report an Issue" button or the floating plus action button. Attach the required photo or video file, check the GPS position coordinates, and click submit.' },
+  { keywords: ['score', 'trust', 'points', 'level'], reply: 'Civic Trust scores are awarded based on engagement metrics:\n- Filing reports: +10 points\n- Verifying adjacent reports: +5 points\n- Closed/resolved issues: +20 points\nLevels scale from Contributor up to Guardian tiers.' },
+  { keywords: ['ticket', 'my issue', 'status'], reply: 'Open the "My Tickets" section in the navigation options to view all incidents logged by your account. Select any item to expand and trace its municipal resolution timeline.' },
+  { keywords: ['sla', 'time', 'deadline', 'hours'], reply: 'SLA parameters are structured by priority score:\n- Critical priority: 4 hours resolution target\n- High priority: 24 hours resolution target\n- Medium priority: 48 hours resolution target\n- Low priority: 72 hours resolution target\nEscalations are handled automatically by municipal supervisors upon SLA breach.' },
+]
+
+const Icons = {
+  send: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+  ),
+  mic: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+  ),
+  bot: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="16" x2="16.01" y2="16"></line></svg>
+  ),
+  user: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+  )
+}
+
+export default function ChatbotTab() {
+  const { user } = useStore()
+  const [messages, setMessages] = useState([SYSTEM_INTRO])
+  const [inputVal, setInputVal] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+
+  const messagesEndRef = useRef(null)
+  const recognitionRef = useRef(null)
+
+  // Scroll to bottom on new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isTyping])
+
+  // Setup Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition()
+      rec.continuous = false
+      rec.interimResults = false
+      rec.lang = 'en-US'
+
+      rec.onresult = (event) => {
+        const text = event.results[0][0].transcript
+        setInputVal((prev) => prev ? `${prev} ${text}` : text)
+        setIsRecording(false)
+      }
+
+      rec.onerror = () => setIsRecording(false)
+      rec.onend = () => setIsRecording(false)
+
+      recognitionRef.current = rec
+    }
+  }, [])
+
+  const handleMicToggle = () => {
+    if (!recognitionRef.current) {
+      alert('Speech recognition is not supported in this browser. Try Chrome or Safari.')
+      return
+    }
+    if (isRecording) {
+      recognitionRef.current.stop()
+    } else {
+      setIsRecording(true)
+      recognitionRef.current.start()
+    }
+  }
+
+  const handleSend = () => {
+    if (!inputVal.trim()) return
+
+    const newMsg = {
+      sender: 'user',
+      text: inputVal,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+
+    setMessages(prev => [...prev, newMsg])
+    setInputVal('')
+    setIsTyping(true)
+
+    // Simulate AI response
+    setTimeout(() => {
+      let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
+      const lowerInput = newMsg.text.toLowerCase()
+
+      for (const logic of CHAT_LOGIC) {
+        if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
+          matchedReply = logic.reply
+          break
+        }
+      }
+
+      setMessages(prev => [...prev, {
+        sender: 'ai',
+        text: matchedReply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }])
+      setIsTyping(false)
+    }, 1200)
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSend()
+  }
+
+  return (
+    <div className="chat-screen">
+      {/* ── Messages Area ──────────────────────────────────────── */}
+      <div className="chat-messages">
+        {messages.map((m, idx) => {
+          const isUser = m.sender === 'user'
+          return (
+            <div key={idx} className={`chat-bubble-row ${isUser ? 'user' : ''}`}>
+              <div className="chat-avatar" style={{ color: 'var(--text-secondary)' }}>
+                {isUser ? Icons.user : Icons.bot}
+              </div>
+              <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
+                <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
+                <div className="chat-time" style={{ color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
+                  {m.time}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        {isTyping && (
+          <div className="chat-bubble-row">
+            <div className="chat-avatar" style={{ color: 'var(--text-secondary)' }}>{Icons.bot}</div>
+            <div className="chat-typing">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* ── Chat Input Bar ─────────────────────────────────────── */}
+      <div className="chat-input-bar">
+        <button
+          className={`chat-mic ${isRecording ? 'recording' : ''}`}
+          onClick={handleMicToggle}
+          style={{ background: isRecording ? 'var(--sev-critical)' : 'none', color: isRecording ? '#fff' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Voice query"
+        >
+          {Icons.mic}
+        </button>
+        <input
+          className="chat-input"
+          placeholder={isRecording ? 'Awaiting audio input...' : 'Ask about municipal procedures or report statuses...'}
+          value={inputVal}
+          onChange={e => setInputVal(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isRecording}
+        />
+        <button className="chat-send" onClick={handleSend} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {Icons.send}
+        </button>
+      </div>
+    </div>
+  )
+}
