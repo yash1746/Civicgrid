@@ -6,6 +6,7 @@
  * Suggested prompt chips for improved UX guidance
  * Support editing user messages and undoing message exchanges
  * Image attachment & upload feature with thumbnail previews
+ * Dual-source attachment options: Direct Camera Capture & File storage selection
  */
 import { useState, useEffect, useRef } from 'react'
 import useStore from '../../store/useStore.js'
@@ -51,6 +52,12 @@ const Icons = {
   ),
   paperclip: (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+  ),
+  camera: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+  ),
+  folder: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
   )
 }
 
@@ -61,8 +68,9 @@ export default function ChatbotTab() {
   const [isTyping, setIsTyping] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
 
-  // Image Upload State
+  // Attachment States
   const [selectedImage, setSelectedImage] = useState(null)
+  const [showAttachMenu, setShowAttachMenu] = useState(false)
 
   // Edit Message States
   const [editingIndex, setEditingIndex] = useState(null)
@@ -70,7 +78,10 @@ export default function ChatbotTab() {
 
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
+  
+  // Two inputs for Direct Camera / File storage select
   const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -480,7 +491,7 @@ export default function ChatbotTab() {
         {/* ── Chat Input Bar ─────────────────────────────────────── */}
         <div className="chat-input-bar">
           
-          {/* File input for images */}
+          {/* File inputs: standard storage chooser & direct camera capture */}
           <input
             type="file"
             ref={fileInputRef}
@@ -488,16 +499,106 @@ export default function ChatbotTab() {
             accept="image/*"
             onChange={handleFileChange}
           />
+          <input
+            type="file"
+            ref={cameraInputRef}
+            style={{ display: 'none' }}
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileChange}
+          />
 
-          <button
-            type="button"
-            className="chat-mic"
-            onClick={() => fileInputRef.current.click()}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}
-            title="Attach image evidence"
-          >
-            {Icons.paperclip}
-          </button>
+          {/* Attachment Floating Selection Popover */}
+          <div style={{ position: 'relative' }}>
+            {showAttachMenu && (
+              <div style={{
+                position: 'absolute',
+                bottom: '48px',
+                left: '0',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '6px',
+                width: '144px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                boxShadow: 'var(--shadow-lg)',
+                zIndex: 1000,
+                animation: 'fadeIn var(--t-fast)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false)
+                    cameraInputRef.current.click()
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  className="attach-menu-item"
+                >
+                  <span style={{ display: 'flex', color: 'var(--accent)' }}>{Icons.camera}</span>
+                  <span>Take Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAttachMenu(false)
+                    fileInputRef.current.click()
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  className="attach-menu-item"
+                >
+                  <span style={{ display: 'flex', color: 'var(--accent)' }}>{Icons.folder}</span>
+                  <span>Choose File</span>
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={`chat-mic ${showAttachMenu ? 'active' : ''}`}
+              onClick={() => setShowAttachMenu(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1.5px solid var(--border)',
+                background: showAttachMenu ? 'var(--bg-input)' : 'none',
+                color: showAttachMenu ? 'var(--accent)' : 'var(--text-secondary)'
+              }}
+              title="Attach media options"
+            >
+              {Icons.paperclip}
+            </button>
+          </div>
 
           <button
             className={`chat-mic ${isRecording ? 'recording' : ''}`}

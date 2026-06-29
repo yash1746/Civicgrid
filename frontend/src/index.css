@@ -1303,3 +1303,7 @@ button { font-family: var(--font); cursor: pointer; border: none; }
     height: 240px;
   }
 }
+.attach-menu-item:hover {
+  background: var(--bg-card-hover) !important;
+  color: var(--accent) !important;
+}
