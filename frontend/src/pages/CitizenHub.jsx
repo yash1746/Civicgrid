@@ -223,7 +223,7 @@ export default function CitizenHub() {
       </header>
 
       {/* ── Active Tab Screen Render ─────────────────────────── */}
-      <main className={activeTab === 'chatbot' ? 'screen screen-full' : 'screen'}>
+      <main className={activeTab === 'chatbot' ? 'screen-full' : 'screen'}>
         {renderScreen()}
       </main>
 

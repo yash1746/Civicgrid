@@ -156,11 +156,14 @@ button { font-family: var(--font); cursor: pointer; border: none; }
   scroll-behavior: smooth;
 }
 .screen-full {
-  /* For screens that manage their own scroll / have maps */
+  position: fixed;
+  top: var(--topbar-height);
+  bottom: var(--nav-height);
+  left: 0;
+  right: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
 }
 .dashboard-container {
   display: flex;
