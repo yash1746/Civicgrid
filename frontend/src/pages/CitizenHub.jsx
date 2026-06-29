@@ -167,7 +167,7 @@ export default function CitizenHub() {
         {/* Desktop Web App Tabs (Clean SVGs) */}
         <div className="topbar-tabs">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: Icons.dashboard },
+            { id: 'dashboard', label: 'Home', icon: Icons.dashboard },
             { id: 'tickets', label: `My Tickets ${notifCount > 0 ? `(${notifCount})` : ''}`, icon: Icons.tickets },
             { id: 'chatbot', label: 'Chatbot', icon: Icons.chatbot },
             { id: 'profile', label: 'Profile', icon: Icons.profile },
@@ -235,7 +235,7 @@ export default function CitizenHub() {
           onClick={() => setActiveTab('dashboard')}
         >
           <span className="nav-icon" style={{ display: 'flex', alignItems: 'center' }}>{Icons.dashboard}</span>
-          <span style={{ marginTop: '2px' }}>Dashboard</span>
+          <span style={{ marginTop: '2px' }}>Home</span>
         </button>
 
         <button
