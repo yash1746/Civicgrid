@@ -287,7 +287,7 @@ export default function MyTicketsTab() {
                       <div className="before-after" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         
                         {/* Before Panel */}
-                        <div className="ba-panel" style={{ height: '100px' }}>
+                        <div className="ba-panel">
                           {ticket.media_urls?.[0] ? (
                             <img src={ticket.media_urls[0]} alt="Original report state" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
@@ -300,7 +300,7 @@ export default function MyTicketsTab() {
                         </div>
 
                         {/* After Panel */}
-                        <div className="ba-panel" style={{ height: '100px' }}>
+                        <div className="ba-panel">
                           {ticket.status === 'resolved' ? (
                             ticket.proof_media_urls?.[0] ? (
                               <img src={ticket.proof_media_urls[0]} alt="Resolution state" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -432,7 +432,7 @@ export default function MyTicketsTab() {
               <div>
                 <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>Visual Evidence Ledger</label>
                 <div className="before-after" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: 0 }}>
-                  <div className="ba-panel" style={{ height: '140px' }}>
+                  <div className="ba-panel">
                     {detailedTicket.media_urls?.[0] ? (
                       <img src={detailedTicket.media_urls[0]} alt="Initial report state" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -443,7 +443,7 @@ export default function MyTicketsTab() {
                     )}
                     <div className="ba-label">Reported State</div>
                   </div>
-                  <div className="ba-panel" style={{ height: '140px' }}>
+                  <div className="ba-panel">
                     {detailedTicket.status === 'resolved' ? (
                       detailedTicket.proof_media_urls?.[0] ? (
                         <img src={detailedTicket.proof_media_urls[0]} alt="Resolution proof" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
