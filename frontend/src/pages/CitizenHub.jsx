@@ -5,6 +5,7 @@
  * - Navigation: active tab routing to Screen 1, 3, 4, 5
  * - Full-screen overlay sheet: Upload Problem Screen 2
  * - Light/Dark theme syncing
+ * - Dynamic notification badge count
  */
 import { useEffect } from 'react'
 import useStore from '../store/useStore.js'
@@ -51,20 +52,85 @@ export default function CitizenHub() {
     toggleTheme,
     nearbyIssues,
     setNearbyIssues,
-    notifCount
+    myIssues,
+    setMyIssues
   } = useStore()
 
   // Seed initial mock data if empty (helps local PWA testing)
   useEffect(() => {
     if (nearbyIssues.length === 0) {
-      setNearbyIssues([
-        { id: 'd1', title: 'Pothole blocks public transit lane', category: 'pothole', severity_level: 'high', severity_score: 8, status: 'open', lat: 19.0760, lng: 72.8777, address_text: 'MG Road, Mumbai', distance_m: 120 },
-        { id: 'd2', title: 'Streetlight outage creates visibility hazard', category: 'broken_streetlight', severity_level: 'medium', severity_score: 5, status: 'assigned', lat: 19.0772, lng: 72.8790, address_text: 'Linking Road', distance_m: 340 },
-        { id: 'd3', title: 'Main waterline rupture flooding sidewalk', category: 'water_leak', severity_level: 'critical', severity_score: 9, status: 'in_progress', lat: 19.0745, lng: 72.8760, address_text: 'Hill Road', distance_m: 560 },
-        { id: 'd4', title: 'Solid waste accumulation near city park', category: 'garbage_overflow', severity_level: 'low', severity_score: 3, status: 'open', lat: 19.0788, lng: 72.8800, address_text: 'Carter Road', distance_m: 820 },
-      ])
+      const initialIssues = [
+        {
+          id: 'ticket-1',
+          title: 'Pothole blocks public transit lane',
+          category: 'pothole',
+          severity_level: 'high',
+          severity_score: 8,
+          status: 'resolved',
+          lat: 19.0760,
+          lng: 72.8777,
+          address_text: 'MG Road, Mumbai',
+          distance_m: 120,
+          description: 'A deep pothole has emerged right in the middle of the bus lane, causing transit buses to swerve dangerously into oncoming traffic.',
+          created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+          resolved_at: new Date(Date.now() - 86400000).toISOString(),
+          media_urls: ['https://images.unsplash.com/photo-1515162305285-0293e4767cc2?w=500&auto=format&fit=crop'],
+          proof_media_urls: ['https://images.unsplash.com/photo-1599740831119-4727b161405e?w=500&auto=format&fit=crop']
+        },
+        {
+          id: 'ticket-2',
+          title: 'Streetlight outage creates visibility hazard',
+          category: 'broken_streetlight',
+          severity_level: 'medium',
+          severity_score: 5,
+          status: 'assigned',
+          lat: 19.0772,
+          lng: 72.8790,
+          address_text: 'Linking Road, Mumbai',
+          distance_m: 340,
+          description: 'The main streetlight fixture at the intersection is completely broken, causing pitch black conditions at night for pedestrians.',
+          created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+          media_urls: ['https://images.unsplash.com/photo-1509021436665-8f37df706a73?w=500&auto=format&fit=crop']
+        },
+        {
+          id: 'ticket-3',
+          title: 'Main waterline rupture flooding sidewalk',
+          category: 'water_leak',
+          severity_level: 'critical',
+          severity_score: 9,
+          status: 'in_progress',
+          lat: 19.0745,
+          lng: 72.8760,
+          address_text: 'Hill Road, Bandra',
+          distance_m: 560,
+          description: 'A high-pressure clean water pipe has ruptured, flooding the shopping sidewalk and leaking thousands of gallons of water.',
+          created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+          media_urls: ['https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&auto=format&fit=crop']
+        },
+        {
+          id: 'ticket-4',
+          title: 'Solid waste accumulation near city park',
+          category: 'garbage_overflow',
+          severity_level: 'low',
+          severity_score: 3,
+          status: 'open',
+          lat: 19.0788,
+          lng: 72.8800,
+          address_text: 'Carter Road, Mumbai',
+          distance_m: 820,
+          description: 'A large heap of uncollected household garbage bags has accumulated near the children\'s park entrance, attracting stray dogs.',
+          created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+          media_urls: ['https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?w=500&auto=format&fit=crop']
+        }
+      ]
+      setNearbyIssues(initialIssues)
+      // Make the first 3 issues belong to the current user (myIssues)
+      setMyIssues(initialIssues.slice(0, 3))
     }
-  }, [nearbyIssues.length, setNearbyIssues])
+  }, [nearbyIssues.length, setNearbyIssues, setMyIssues])
+
+  // Calculate dynamic notification count based on user's active/pending tickets
+  const notifCount = myIssues.filter(ticket => ticket.status !== 'resolved' && ticket.status !== 'closed').length
 
   // Map tabs to screens
   const renderScreen = () => {
@@ -82,49 +148,20 @@ export default function CitizenHub() {
     }
   }
 
-  // Header Title matching tab
-  const getHeaderTitle = () => {
-    switch (activeTab) {
-      case 'dashboard': return 'City Board'
-      case 'tickets': return 'Track Reports'
-      case 'chatbot': return 'Civic AI'
-      case 'profile': return 'Settings'
-      default: return 'CivicGrid'
-    }
-  }
-
-  const handleUploadSuccess = (mockCreatedIssue) => {
+  const handleUploadSuccess = () => {
     setUploadSheetOpen(false)
-    if (mockCreatedIssue) {
-      setNearbyIssues([mockCreatedIssue, ...nearbyIssues])
-    }
     setActiveTab('tickets')
   }
 
   return (
     <div className="app-shell">
-      {/* ── Global Top Bar (Landing Page Styled) ────────────────── */}
-      <header className="topbar" style={{ padding: '0 24px', height: '72px' }}>
-        
-        {/* Left Circular Brand Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-            boxShadow: 'var(--shadow-sm)',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
+      {/* ── Desktop Header ── */}
+      <header className="topbar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>
             {Icons.shield}
-          </div>
-          <span className="topbar-brand" style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.3px' }}>
-            CivicGrid <span style={{ color: 'var(--accent)' }}>AI</span>
           </span>
+          <span className="logo-text">CivicGrid</span>
         </div>
 
         {/* Desktop Web App Tabs (Clean SVGs) */}
