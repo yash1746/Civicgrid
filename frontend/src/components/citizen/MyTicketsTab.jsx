@@ -1,12 +1,21 @@
 /**
  * CivicGrid — Screen 3: My Tickets (Tracking Screen)
  * Shows only the issues reported by the current user.
- * Tapping a ticket expands it to show a vertical Status Timeline.
- * If status is "Resolved", displays Before & After photos side-by-side.
+ * Includes actions to view complete ticket details and delete/remove tickets locally.
  */
 import { useState, useEffect } from 'react'
 import useStore from '../../store/useStore.js'
 import { getMyIssues } from '../../api/civicgrid.js'
+import { MapContainer, TileLayer, Marker } from 'react-leaflet'
+import L from 'leaflet'
+
+// Fix default Leaflet icon assets for the details map
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
 
 const CATEGORY_LABELS = {
   pothole: 'Pothole',
@@ -35,9 +44,11 @@ const Icons = {
 }
 
 export default function MyTicketsTab() {
-  const { user, token, myIssues, setMyIssues } = useStore()
+  const { user, token, myIssues, setMyIssues, nearbyIssues, setNearbyIssues } = useStore()
   const [expandedId, setExpandedId] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [detailedTicket, setDetailedTicket] = useState(null)
+  const [ticketToDelete, setTicketToDelete] = useState(null)
 
   // Demo Fallback Data
   const demoTickets = [
@@ -51,6 +62,10 @@ export default function MyTicketsTab() {
       resolved_at: new Date(Date.now() - 86400000).toISOString(),
       media_urls: ['https://images.unsplash.com/photo-1515162305285-0293e4767cc2?w=500&auto=format&fit=crop'],
       proof_media_urls: ['https://images.unsplash.com/photo-1599740831119-4727b161405e?w=500&auto=format&fit=crop'],
+      address_text: 'Linking Road, Mumbai',
+      lat: 19.0772,
+      lng: 72.8790,
+      description: 'A deep pothole has emerged right outside the coffee shop, creating a massive hazard for passing motorcycles.'
     },
     {
       id: 'demo-in-progress',
@@ -60,6 +75,10 @@ export default function MyTicketsTab() {
       severity_level: 'critical',
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
       media_urls: ['https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&auto=format&fit=crop'],
+      address_text: 'Hill Road, Bandra',
+      lat: 19.0745,
+      lng: 72.8760,
+      description: 'The main water distribution pipe has cracked, causing continuous high-pressure flooding across the sidewalk.'
     },
     {
       id: 'demo-open',
@@ -69,13 +88,19 @@ export default function MyTicketsTab() {
       severity_level: 'low',
       created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
       media_urls: ['https://images.unsplash.com/photo-1509021436665-8f37df706a73?w=500&auto=format&fit=crop'],
+      address_text: 'Carter Road',
+      lat: 19.0788,
+      lng: 72.8800,
+      description: 'The streetlight fixture is damaged and oscillates between flickering on and turning off completely.'
     }
   ]
 
   const loadIssues = async () => {
     setLoading(true)
     if (token === 'demo-token-civicgrid' || !token) {
-      setMyIssues(demoTickets)
+      if (myIssues.length === 0) {
+        setMyIssues(demoTickets)
+      }
       setLoading(false)
       return
     }
@@ -84,7 +109,9 @@ export default function MyTicketsTab() {
       setMyIssues(res.data.data.reported || [])
     } catch (e) {
       console.warn('Backend offline — loading demo tickets')
-      setMyIssues(demoTickets)
+      if (myIssues.length === 0) {
+        setMyIssues(demoTickets)
+      }
     } finally {
       setLoading(false)
     }
@@ -184,6 +211,32 @@ export default function MyTicketsTab() {
                   </div>
                 </div>
 
+                {/* Actions row */}
+                <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border)', padding: '8px 14px', background: 'var(--bg-card-hover)', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDetailedTicket(ticket)
+                    }}
+                    style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
+                  >
+                    View Details
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setTicketToDelete(ticket)
+                    }}
+                    style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                  >
+                    Delete
+                  </button>
+                </div>
+
                 {/* ── Expanded Status Timeline & Before/After ──────── */}
                 {isExpanded && (
                   <div style={{
@@ -248,6 +301,161 @@ export default function MyTicketsTab() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ── Ticket Detailed View Modal Overlay ───────────────── */}
+      {detailedTicket && (
+        <div className="sheet-overlay" onClick={() => setDetailedTicket(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', width: '90%' }}>
+            <div className="sheet-header">
+              <h3 className="sheet-title">Civic Ledger Entry</h3>
+              <button className="sheet-close" onClick={() => setDetailedTicket(null)}>×</button>
+            </div>
+            <div style={{ padding: '0 20px 30px', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Header Title & Category */}
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent)', letterSpacing: '0.04em' }}>
+                  {CATEGORY_LABELS[detailedTicket.category] || 'Civic Incident Log'}
+                </span>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                  {detailedTicket.title}
+                </h2>
+              </div>
+
+              {/* Status and Severity Badges */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--bg-base)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Ticket Status</div>
+                  <span className={`badge badge-${detailedTicket.status || 'open'}`} style={{ textTransform: 'uppercase', fontSize: '0.62rem' }}>
+                    {detailedTicket.status?.replace('_', ' ')}
+                  </span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Severity Priority</div>
+                  <span className={`badge badge-${detailedTicket.severity_level || 'low'}`} style={{ textTransform: 'uppercase', fontSize: '0.62rem' }}>
+                    {detailedTicket.severity_level}
+                  </span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Reported Date</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {new Date(detailedTicket.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>GPS Location</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {detailedTicket.lat ? `${detailedTicket.lat.toFixed(5)}, ${detailedTicket.lng.toFixed(5)}` : 'Coordinates on file'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactive Leaflet Map for Location */}
+              {detailedTicket.lat && (
+                <div>
+                  <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>Incident Site Map</label>
+                  <div style={{ height: '180px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    <MapContainer
+                      center={[detailedTicket.lat, detailedTicket.lng]}
+                      zoom={14}
+                      style={{ height: '100%', width: '100%' }}
+                      zoomControl={false}
+                      dragging={false}
+                      doubleClickZoom={false}
+                      scrollWheelZoom={false}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[detailedTicket.lat, detailedTicket.lng]} />
+                    </MapContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Detailed Description */}
+              {detailedTicket.description && (
+                <div>
+                  <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>Incident Description</label>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5, background: 'var(--bg-input)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    {detailedTicket.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Landmark */}
+              <div>
+                <label className="form-label" style={{ display: 'block', marginBottom: '6px' }}>Nearest Landmark / Street Address</label>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5, background: 'var(--bg-input)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  {detailedTicket.address_text || 'No landmark described.'}
+                </p>
+              </div>
+
+              {/* Visual Evidence (Before / After Grid) */}
+              <div>
+                <label className="form-label" style={{ display: 'block', marginBottom: '8px' }}>Visual Evidence Ledger</label>
+                <div className="before-after" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: 0 }}>
+                  <div className="ba-panel" style={{ height: '140px' }}>
+                    {detailedTicket.media_urls?.[0] ? (
+                      <img src={detailedTicket.media_urls[0]} alt="Initial report state" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        No Photo Uploaded
+                      </div>
+                    )}
+                    <div className="ba-label">Reported State</div>
+                  </div>
+                  <div className="ba-panel" style={{ height: '140px' }}>
+                    {detailedTicket.status === 'resolved' ? (
+                      <img src={detailedTicket.proof_media_urls?.[0] || 'https://images.unsplash.com/photo-1599740831119-4727b161405e?w=500&auto=format&fit=crop'} alt="Resolution proof" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', padding: '8px' }}>
+                        <span>Resolution Pending</span>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--accent)', marginTop: '2px', textTransform: 'uppercase', fontWeight: 600 }}>Dispatch Scheduled</span>
+                      </div>
+                    )}
+                    <div className="ba-label">Resolved State</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom Theme Delete Confirmation Modal ──────────────── */}
+      {ticketToDelete && (
+        <div className="sheet-overlay" onClick={() => setTicketToDelete(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '24px' }}>
+            <div style={{ color: 'var(--sev-critical)', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px' }}>Delete Incident Report?</h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.4 }}>
+              This will permanently remove the report "{ticketToDelete.title}" from the public feed and your profile. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setTicketToDelete(null)}
+                style={{ flex: 1, padding: '10px', borderRadius: '6px', fontSize: '0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={() => {
+                  setMyIssues(myIssues.filter(issue => issue.id !== ticketToDelete.id))
+                  setNearbyIssues(nearbyIssues.filter(issue => issue.id !== ticketToDelete.id))
+                  setTicketToDelete(null)
+                }}
+                style={{ flex: 1, padding: '10px', borderRadius: '6px', fontSize: '0.85rem' }}
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
