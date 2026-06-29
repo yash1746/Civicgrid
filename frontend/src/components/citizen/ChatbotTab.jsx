@@ -242,7 +242,7 @@ export default function ChatbotTab() {
                 >
                   {isUser ? Icons.user : Icons.bot}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="chat-bubble-container">
                   <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
                     {editingIndex === idx ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '220px' }}>
