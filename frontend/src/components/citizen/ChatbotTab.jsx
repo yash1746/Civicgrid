@@ -163,17 +163,87 @@ export default function ChatbotTab() {
 
   return (
     <div className="chat-screen">
-      {/* ── Messages Area ──────────────────────────────────────── */}
-      <div className="chat-messages">
-        {messages.map((m, idx) => {
-          const isUser = m.sender === 'user'
-          return (
-            <div key={idx} className={`chat-bubble-row ${isUser ? 'user' : ''}`}>
+      <div className="chat-box">
+        {/* ── Messages Area ──────────────────────────────────────── */}
+        <div className="chat-messages">
+          {messages.map((m, idx) => {
+            const isUser = m.sender === 'user'
+            return (
+              <div key={idx} className={`chat-bubble-row ${isUser ? 'user' : ''}`}>
+                <div
+                  className="chat-avatar"
+                  style={{
+                    background: isUser ? 'var(--bg-input)' : 'var(--accent-light)',
+                    color: isUser ? 'var(--text-secondary)' : 'var(--accent)',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  {isUser ? Icons.user : Icons.bot}
+                </div>
+                <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
+                  <div style={{ whiteSpace: 'pre-line', fontSize: '0.88rem', lineHeight: 1.5 }}>{m.text}</div>
+                  <div className="chat-time" style={{ color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
+                    {m.time}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Dynamic Suggested Action Prompts (Shows when history is clean) */}
+          {messages.length === 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '16px 0 16px 42px', maxWidth: '500px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Suggested Queries
+              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {QUICK_PROMPTS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleQuickPromptClick(p.text)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all var(--t-fast)',
+                      textAlign: 'left'
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.borderColor = 'var(--accent)'
+                      e.currentTarget.style.background = 'var(--bg-card-hover)'
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.background = 'var(--bg-card)'
+                    }}
+                  >
+                    {p.text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isTyping && (
+            <div className="chat-bubble-row">
               <div
                 className="chat-avatar"
                 style={{
-                  background: isUser ? 'var(--bg-input)' : 'var(--accent-light)',
-                  color: isUser ? 'var(--text-secondary)' : 'var(--accent)',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
@@ -184,108 +254,40 @@ export default function ChatbotTab() {
                   border: '1px solid var(--border)'
                 }}
               >
-                {isUser ? Icons.user : Icons.bot}
+                {Icons.bot}
               </div>
-              <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
-                <div style={{ whiteSpace: 'pre-line', fontSize: '0.88rem', lineHeight: 1.5 }}>{m.text}</div>
-                <div className="chat-time" style={{ color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
-                  {m.time}
-                </div>
+              <div className="chat-typing">
+                <span />
+                <span />
+                <span />
               </div>
             </div>
-          )
-        })}
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-        {/* Dynamic Suggested Action Prompts (Shows when history is clean) */}
-        {messages.length === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '16px 0 16px 42px', maxWidth: '500px' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Suggested Queries
-            </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {QUICK_PROMPTS.map((p, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleQuickPromptClick(p.text)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    transition: 'all var(--t-fast)',
-                    textAlign: 'left'
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.borderColor = 'var(--accent)'
-                    e.currentTarget.style.background = 'var(--bg-card-hover)'
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.borderColor = 'var(--border)'
-                    e.currentTarget.style.background = 'var(--bg-card)'
-                  }}
-                >
-                  {p.text}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {isTyping && (
-          <div className="chat-bubble-row">
-            <div
-              className="chat-avatar"
-              style={{
-                background: 'var(--accent-light)',
-                color: 'var(--accent)',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: '1px solid var(--border)'
-              }}
-            >
-              {Icons.bot}
-            </div>
-            <div className="chat-typing">
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* ── Chat Input Bar ─────────────────────────────────────── */}
-      <div className="chat-input-bar">
-        <button
-          className={`chat-mic ${isRecording ? 'recording' : ''}`}
-          onClick={handleMicToggle}
-          style={{ background: isRecording ? 'var(--sev-critical)' : 'none', color: isRecording ? '#fff' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          title="Voice query"
-        >
-          {Icons.mic}
-        </button>
-        <input
-          className="chat-input"
-          placeholder={isRecording ? 'Awaiting audio input...' : 'Ask about municipal procedures or report statuses...'}
-          value={inputVal}
-          onChange={e => setInputVal(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isRecording}
-        />
-        <button className="chat-send" onClick={handleSend} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {Icons.send}
-        </button>
+        {/* ── Chat Input Bar ─────────────────────────────────────── */}
+        <div className="chat-input-bar">
+          <button
+            className={`chat-mic ${isRecording ? 'recording' : ''}`}
+            onClick={handleMicToggle}
+            style={{ background: isRecording ? 'var(--sev-critical)' : 'none', color: isRecording ? '#fff' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title="Voice query"
+          >
+            {Icons.mic}
+          </button>
+          <input
+            className="chat-input"
+            placeholder={isRecording ? 'Awaiting audio input...' : 'Ask about municipal procedures or report statuses...'}
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isRecording}
+          />
+          <button className="chat-send" onClick={handleSend} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {Icons.send}
+          </button>
+        </div>
       </div>
     </div>
   )
