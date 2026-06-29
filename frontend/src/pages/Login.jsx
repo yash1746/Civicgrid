@@ -139,7 +139,7 @@ export default function Login() {
         <div style={{ marginBottom: '20px' }}>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '8px',
                       textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-            I am a…
+            I am logging in or registering as a…
           </p>
           <div className="role-switcher" style={{ marginBottom: 0 }}>
             {[
