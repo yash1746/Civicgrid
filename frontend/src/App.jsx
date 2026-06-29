@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import CitizenHub from './pages/CitizenHub.jsx'
+import ResolverPortal from './pages/ResolverPortal.jsx'
 import Login from './pages/Login.jsx'
 import useStore from './store/useStore.js'
 
 export default function App() {
-  const { initTheme, token } = useStore()
+  const { initTheme, token, user } = useStore()
 
   useEffect(() => {
     // Initialize light/dark theme preference from store
@@ -13,6 +14,7 @@ export default function App() {
   }, [initTheme])
 
   const isLoggedIn = !!token
+  const isResolver = isLoggedIn && user?.role === 'resolver'
 
   return (
     <BrowserRouter>
@@ -20,13 +22,19 @@ export default function App() {
         {/* Login Page */}
         <Route
           path="/login"
-          element={isLoggedIn ? <Navigate to="/" replace /> : <Login />}
+          element={isLoggedIn ? (isResolver ? <Navigate to="/resolver" replace /> : <Navigate to="/" replace />) : <Login />}
         />
 
-        {/* Main PWA shell containing the 5 mobile screens */}
+        {/* Resolver Portal */}
+        <Route
+          path="/resolver"
+          element={isLoggedIn ? (isResolver ? <ResolverPortal /> : <Navigate to="/" replace />) : <Navigate to="/login" replace />}
+        />
+
+        {/* Main PWA shell for citizens */}
         <Route
           path="/"
-          element={isLoggedIn ? <CitizenHub /> : <Navigate to="/login" replace />}
+          element={isLoggedIn ? (isResolver ? <Navigate to="/resolver" replace /> : <CitizenHub />) : <Navigate to="/login" replace />}
         />
         
         {/* Fallbacks */}

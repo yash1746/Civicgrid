@@ -41,10 +41,10 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      const res = await googleLogin(response.credential)
+      const res = await googleLogin(response.credential, role)
       const { access_token, user } = res.data
       setAuth(user, access_token)
-      navigate(user.role === 'resolver' ? '/resolver' : '/citizen')
+      navigate(user.role === 'resolver' ? '/resolver' : '/')
     } catch (e) {
       const msg = e.response?.data?.detail || e.message || 'Google authentication failed.'
       setError(msg)
@@ -86,13 +86,13 @@ export default function Login() {
     if (window.google) {
       initGoogle()
     }
-  }, [])
+  }, [role]) // Refresh Google sign-in config when the role changes!
 
   // ── Demo Mode login (no backend required) ────────────────────────────
   const handleDemoLogin = (demoRole) => {
     const demoUser = DEMO_USERS[demoRole]
     setAuth(demoUser, 'demo-token-civicgrid')
-    navigate(demoRole === 'resolver' ? '/resolver' : '/citizen')
+    navigate(demoRole === 'resolver' ? '/resolver' : '/')
   }
 
   // ── Real backend login ───────────────────────────────────────────────
@@ -107,12 +107,12 @@ export default function Login() {
         res = await login(email, password)
         const { access_token, user } = res.data
         setAuth(user, access_token)
-        navigate(user.role === 'resolver' ? '/resolver' : '/citizen')
+        navigate(user.role === 'resolver' ? '/resolver' : '/')
       } else {
         res = await register({ email, password, full_name: fullName, role })
         const { access_token, user } = res.data
         setAuth(user, access_token)
-        navigate(user.role === 'resolver' ? '/resolver' : '/citizen')
+        navigate(user.role === 'resolver' ? '/resolver' : '/')
       }
     } catch (e) {
       const msg = e.response?.data?.detail || e.message || 'Connection failed.'
@@ -133,6 +133,31 @@ export default function Login() {
         <div className="login-logo">
           <div className="login-logo-text">⚡ CIVICGRID</div>
           <div className="login-logo-sub">AI-Powered Community Platform</div>
+        </div>
+
+        {/* Role Selector (Universal) */}
+        <div style={{ marginBottom: '20px' }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '8px',
+                      textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+            I am a…
+          </p>
+          <div className="role-switcher" style={{ marginBottom: 0 }}>
+            {[
+              { value: 'citizen',  label: '🏘️ Citizen',  desc: 'Report & track issues' },
+              { value: 'resolver', label: '🔧 Resolver', desc: 'Fix & close issues' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`role-option ${role === opt.value ? 'active' : ''}`}
+                onClick={() => setRole(opt.value)}
+                style={{ flexDirection: 'column', height: 'auto', padding: '10px 8px' }}
+              >
+                <span>{opt.label}</span>
+                <span style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: 2 }}>{opt.desc}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── DEMO MODE BANNER ─────────────────────────────────────── */}
@@ -207,31 +232,7 @@ export default function Login() {
           </button>
         </div>
 
-        {/* Role picker (register only) */}
-        {mode === 'register' && (
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '8px',
-                        textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-              I am a…
-            </p>
-            <div className="role-switcher" style={{ marginBottom: 0 }}>
-              {[
-                { value: 'citizen',  label: '🏘️ Citizen',  desc: 'Report & track issues' },
-                { value: 'resolver', label: '🔧 Resolver', desc: 'Fix & close issues' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  className={`role-option ${role === opt.value ? 'active' : ''}`}
-                  onClick={() => setRole(opt.value)}
-                  style={{ flexDirection: 'column', height: 'auto', padding: '10px 8px' }}
-                >
-                  <span>{opt.label}</span>
-                  <span style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: 2 }}>{opt.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {mode === 'register' && (

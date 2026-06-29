@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
 
 class GoogleLoginRequest(BaseModel):
     google_token: str
+    role: Optional[str] = "citizen"
 
 
 @router.post("/google")
@@ -79,7 +80,7 @@ async def google_login(body: GoogleLoginRequest, db: Client = Depends(get_db)):
             "email": email,
             "full_name": full_name,
             "password_hash": None,  # Nullable password hash for Google Auth users
-            "role": "citizen",
+            "role": body.role if body.role in ("citizen", "resolver") else "citizen",
             "civic_trust_score": 0,
             "avatar_url": picture
         }
