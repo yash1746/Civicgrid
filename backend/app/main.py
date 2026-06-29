@@ -1,6 +1,35 @@
-"""
-CivicGrid — FastAPI Application Entry Point
-"""
+# ── Python 3.13 Compatibility Monkeypatch ──
+import sys
+import types
+
+if "imghdr" not in sys.modules:
+    imghdr = types.ModuleType("imghdr")
+
+    def what(file, h=None):
+        if isinstance(file, str):
+            ext = file.split(".")[-1].lower()
+            if ext in ["jpg", "jpeg"]:
+                return "jpeg"
+            return ext
+        if h is not None:
+            data = h
+        elif hasattr(file, "read"):
+            pos = file.tell()
+            data = file.read(32)
+            file.seek(pos)
+        else:
+            data = file[:32] if isinstance(file, (bytes, bytearray)) else b""
+        if data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "png"
+        elif data.startswith(b"\xff\xd8"):
+            return "jpeg"
+        elif data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+            return "gif"
+        return None
+
+    imghdr.what = what
+    sys.modules["imghdr"] = imghdr
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
