@@ -40,6 +40,15 @@ const TIMELINE_STEPS = [
 const Icons = {
   info: (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+  ),
+  picture: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+  ),
+  pending: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+  ),
+  resolved: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
   )
 }
 
@@ -247,7 +256,7 @@ export default function MyTicketsTab() {
                   }} onClick={e => e.stopPropagation()}>
                     
                     {/* Vertical Timeline */}
-                    <div className="timeline">
+                    <div className="timeline" style={{ marginBottom: '20px' }}>
                       {TIMELINE_STEPS.map((step, idx) => {
                         const isDone = idx < currentStepIdx || ticket.status === 'resolved' || ticket.status === 'closed'
                         const isCurrent = idx === currentStepIdx && ticket.status !== 'resolved' && ticket.status !== 'closed'
@@ -270,22 +279,50 @@ export default function MyTicketsTab() {
                       })}
                     </div>
 
-                    {/* Completion Side-by-Side Visual */}
-                    {(ticket.status === 'resolved' || ticket.status === 'closed') && (
-                      <div style={{ marginTop: '16px' }}>
-                        <p style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                          Evidence Verification (Before & After)
-                        </p>
-                        <div className="before-after">
-                          <div className="ba-panel">
-                            <img src={ticket.media_urls?.[0]} alt="Original report state" />
-                            <div className="ba-label">Before</div>
-                          </div>
-                          <div className="ba-panel">
-                            <img src={ticket.proof_media_urls?.[0] || 'https://images.unsplash.com/photo-1599740831119-4727b161405e?w=500&auto=format&fit=crop'} alt="Resolution state" />
-                            <div className="ba-label">After</div>
-                          </div>
+                    {/* Completion Side-by-Side Visual Evidence */}
+                    <div style={{ marginTop: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                      <p style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                        Evidence Verification (Before & After)
+                      </p>
+                      <div className="before-after" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        
+                        {/* Before Panel */}
+                        <div className="ba-panel" style={{ height: '100px' }}>
+                          {ticket.media_urls?.[0] ? (
+                            <img src={ticket.media_urls[0]} alt="Original report state" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+                              {Icons.picture}
+                              <span style={{ fontSize: '0.62rem', fontWeight: 600 }}>No Photo</span>
+                            </div>
+                          )}
+                          <div className="ba-label">Before</div>
                         </div>
+
+                        {/* After Panel */}
+                        <div className="ba-panel" style={{ height: '100px' }}>
+                          {ticket.status === 'resolved' ? (
+                            ticket.proof_media_urls?.[0] ? (
+                              <img src={ticket.proof_media_urls[0]} alt="Resolution state" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: 'var(--status-resolved)' }}>
+                                {Icons.resolved}
+                                <span style={{ fontSize: '0.62rem', fontWeight: 600 }}>Resolved</span>
+                              </div>
+                            )
+                          ) : (
+                            <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+                              {Icons.pending}
+                              <span style={{ fontSize: '0.62rem', fontWeight: 600 }}>Pending</span>
+                            </div>
+                          )}
+                          <div className="ba-label">After</div>
+                        </div>
+
+                      </div>
+
+                      {/* Resolved Verified Alert */}
+                      {(ticket.status === 'resolved' || ticket.status === 'closed') && (
                         <div style={{
                           background: 'var(--sev-low-bg)', color: 'var(--sev-low)',
                           border: '1px solid rgba(16,185,129,0.15)',
@@ -294,8 +331,8 @@ export default function MyTicketsTab() {
                         }}>
                           Automated system has verified the image resolution.
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -399,19 +436,27 @@ export default function MyTicketsTab() {
                     {detailedTicket.media_urls?.[0] ? (
                       <img src={detailedTicket.media_urls[0]} alt="Initial report state" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        No Photo Uploaded
+                      <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                        {Icons.picture}
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>No Image Uploaded</span>
                       </div>
                     )}
                     <div className="ba-label">Reported State</div>
                   </div>
                   <div className="ba-panel" style={{ height: '140px' }}>
                     {detailedTicket.status === 'resolved' ? (
-                      <img src={detailedTicket.proof_media_urls?.[0] || 'https://images.unsplash.com/photo-1599740831119-4727b161405e?w=500&auto=format&fit=crop'} alt="Resolution proof" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
+                      detailedTicket.proof_media_urls?.[0] ? (
+                        <img src={detailedTicket.proof_media_urls[0]} alt="Resolution proof" style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--status-resolved)' }}>
+                          {Icons.resolved}
+                          <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>Resolved</span>
+                        </div>
+                      )
                     ) : (
-                      <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', padding: '8px' }}>
-                        <span>Resolution Pending</span>
-                        <span style={{ fontSize: '0.62rem', color: 'var(--accent)', marginTop: '2px', textTransform: 'uppercase', fontWeight: 600 }}>Dispatch Scheduled</span>
+                      <div style={{ background: 'var(--bg-input)', height: '100%', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                        {Icons.pending}
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>Resolution Pending</span>
                       </div>
                     )}
                     <div className="ba-label">Resolved State</div>
