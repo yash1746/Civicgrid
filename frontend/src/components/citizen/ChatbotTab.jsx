@@ -3,6 +3,7 @@
  * Full-screen chat interface similar to WhatsApp/AI messengers
  * Chat bubbles for User and AI
  * Text input field with Microphone icon for speech input
+ * Dynamic suggested prompt chips for improved UX guidance
  */
 import { useState, useEffect, useRef } from 'react'
 import useStore from '../../store/useStore.js'
@@ -20,6 +21,13 @@ const CHAT_LOGIC = [
   { keywords: ['sla', 'time', 'deadline', 'hours'], reply: 'SLA parameters are structured by priority score:\n- Critical priority: 4 hours resolution target\n- High priority: 24 hours resolution target\n- Medium priority: 48 hours resolution target\n- Low priority: 72 hours resolution target\nEscalations are handled automatically by municipal supervisors upon SLA breach.' },
 ]
 
+const QUICK_PROMPTS = [
+  { text: 'How do I report a pothole?', key: 'report' },
+  { text: 'What is my Civic Trust Score?', key: 'score' },
+  { text: 'How do I track my active tickets?', key: 'ticket' },
+  { text: 'What are the SLA time targets?', key: 'sla' },
+]
+
 const Icons = {
   send: (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -28,10 +36,10 @@ const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
   ),
   bot: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="16" x2="16.01" y2="16"></line></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="16" x2="16.01" y2="16"></line></svg>
   ),
   user: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
   )
 }
 
@@ -119,6 +127,36 @@ export default function ChatbotTab() {
     }, 1200)
   }
 
+  const handleQuickPromptClick = (text) => {
+    const newMsg = {
+      sender: 'user',
+      text: text,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+
+    setMessages(prev => [...prev, newMsg])
+    setIsTyping(true)
+
+    setTimeout(() => {
+      let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
+      const lowerInput = text.toLowerCase()
+
+      for (const logic of CHAT_LOGIC) {
+        if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
+          matchedReply = logic.reply
+          break
+        }
+      }
+
+      setMessages(prev => [...prev, {
+        sender: 'ai',
+        text: matchedReply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }])
+      setIsTyping(false)
+    }, 1000)
+  }
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleSend()
   }
@@ -131,11 +169,25 @@ export default function ChatbotTab() {
           const isUser = m.sender === 'user'
           return (
             <div key={idx} className={`chat-bubble-row ${isUser ? 'user' : ''}`}>
-              <div className="chat-avatar" style={{ color: 'var(--text-secondary)' }}>
+              <div
+                className="chat-avatar"
+                style={{
+                  background: isUser ? 'var(--bg-input)' : 'var(--accent-light)',
+                  color: isUser ? 'var(--text-secondary)' : 'var(--accent)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: '1px solid var(--border)'
+                }}
+              >
                 {isUser ? Icons.user : Icons.bot}
               </div>
               <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
-                <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
+                <div style={{ whiteSpace: 'pre-line', fontSize: '0.88rem', lineHeight: 1.5 }}>{m.text}</div>
                 <div className="chat-time" style={{ color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
                   {m.time}
                 </div>
@@ -143,9 +195,66 @@ export default function ChatbotTab() {
             </div>
           )
         })}
+
+        {/* Dynamic Suggested Action Prompts (Shows when history is clean) */}
+        {messages.length === 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '16px 0 16px 42px', maxWidth: '500px' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Suggested Queries
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {QUICK_PROMPTS.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleQuickPromptClick(p.text)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    transition: 'all var(--t-fast)',
+                    textAlign: 'left'
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.borderColor = 'var(--accent)'
+                    e.currentTarget.style.background = 'var(--bg-card-hover)'
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                    e.currentTarget.style.background = 'var(--bg-card)'
+                  }}
+                >
+                  {p.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {isTyping && (
           <div className="chat-bubble-row">
-            <div className="chat-avatar" style={{ color: 'var(--text-secondary)' }}>{Icons.bot}</div>
+            <div
+              className="chat-avatar"
+              style={{
+                background: 'var(--accent-light)',
+                color: 'var(--accent)',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: '1px solid var(--border)'
+              }}
+            >
+              {Icons.bot}
+            </div>
             <div className="chat-typing">
               <span />
               <span />
