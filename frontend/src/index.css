@@ -706,6 +706,7 @@ button { font-family: var(--font); cursor: pointer; border: none; }
   display: flex;
   justify-content: center;
   align-items: stretch;
+  width: 100%;
   padding: 24px 16px;
   height: calc(100dvh - var(--topbar-height) - var(--nav-height));
   background: transparent;
