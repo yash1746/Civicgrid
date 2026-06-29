@@ -1,6 +1,7 @@
 /**
  * CivicGrid — Screen 1: The Dashboard (Default Home Screen)
  * Top half: Landing Page style Hero section
+ * Center: Dashboard statistics banner (Total, Resolved, Pending)
  * Bottom half: Incident cards feed styled as a clean feed grid
  * stuck FAB: Bottom right corner trigger for Upload Problem screen
  */
@@ -47,13 +48,19 @@ export default function DashboardTab({ onReportClick }) {
     fetchLocation()
   }, [fetchLocation])
 
-  const categories = [
-    { value: 'all', label: 'All Reports' },
-    { value: 'pothole', label: 'Potholes' },
-    { value: 'water_leak', label: 'Water Leaks' },
-    { value: 'broken_streetlight', label: 'Streetlights' },
-    { value: 'garbage_overflow', label: 'Waste' },
-  ]
+  // Dynamically extract categories from real-time captured issues
+  const uniqueCategories = ['all', ...new Set(nearbyIssues.map(issue => issue.category).filter(Boolean))]
+  const categories = uniqueCategories.map(cat => ({
+    value: cat,
+    label: cat === 'all' 
+      ? 'All Reports' 
+      : (CATEGORY_LABELS[cat] || cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+  }))
+
+  // Calculate dynamic dashboard stats
+  const totalReported = nearbyIssues.length
+  const totalResolved = nearbyIssues.filter(issue => issue.status === 'resolved' || issue.status === 'closed').length
+  const totalPending = totalReported - totalResolved
 
   // Filter issues based on chip selection & search query
   const filteredIssues = nearbyIssues.filter(issue => {
@@ -83,6 +90,54 @@ export default function DashboardTab({ onReportClick }) {
         </div>
         <div className="hero-image-content">
           <img src="/civicgrid_city_hero.png" alt="Municipal District" />
+        </div>
+      </div>
+
+      {/* ── Stats Dashboard Section ──────────────────────────── */}
+      <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '24px 16px' }}>
+        <div className="desktop-centered-container" style={{ padding: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            
+            {/* Total Reports */}
+            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Nearby Reports
+              </span>
+              <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {totalReported}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Logged inside your sector
+              </span>
+            </div>
+
+            {/* Resolved */}
+            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--status-resolved)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Resolved
+              </span>
+              <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--status-resolved)' }}>
+                {totalResolved}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Closed municipal logs
+              </span>
+            </div>
+
+            {/* Pending Action */}
+            <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--status-progress)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Pending Action
+              </span>
+              <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--status-progress)' }}>
+                {totalPending}
+              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Assigned or in progress
+              </span>
+            </div>
+
+          </div>
         </div>
       </div>
 
