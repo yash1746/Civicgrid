@@ -705,19 +705,18 @@ button { font-family: var(--font); cursor: pointer; border: none; }
 .chat-screen {
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 24px 16px;
+  align-items: stretch;
+  padding: 16px;
   height: calc(100dvh - var(--topbar-height) - var(--nav-height));
-  background: var(--bg-base);
+  background: none;
   overflow: hidden;
 }
 .chat-box {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 640px;
+  max-width: 920px;
   height: 100%;
-  max-height: 580px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
