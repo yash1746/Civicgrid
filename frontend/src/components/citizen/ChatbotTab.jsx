@@ -3,7 +3,8 @@
  * Full-screen chat interface similar to WhatsApp/AI messengers
  * Chat bubbles for User and AI
  * Text input field with Microphone icon for speech input
- * Dynamic suggested prompt chips for improved UX guidance
+ * Suggested prompt chips for improved UX guidance
+ * Support editing user messages and undoing message exchanges
  */
 import { useState, useEffect, useRef } from 'react'
 import useStore from '../../store/useStore.js'
@@ -40,6 +41,12 @@ const Icons = {
   ),
   user: (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+  ),
+  pencil: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+  ),
+  undo: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
   )
 }
 
@@ -49,6 +56,10 @@ export default function ChatbotTab() {
   const [inputVal, setInputVal] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+
+  // Edit Message States
+  const [editingIndex, setEditingIndex] = useState(null)
+  const [editingText, setEditingText] = useState('')
 
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
@@ -157,6 +168,50 @@ export default function ChatbotTab() {
     }, 1000)
   }
 
+  const handleSaveEdit = (idx) => {
+    if (!editingText.trim()) return
+
+    // 1. Update text of message at idx
+    const updatedMessages = [...messages]
+    updatedMessages[idx] = {
+      ...updatedMessages[idx],
+      text: editingText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+
+    // 2. Discard all subsequent messages (AI response and future exchanges)
+    const truncated = updatedMessages.slice(0, idx + 1)
+    
+    setMessages(truncated)
+    setEditingIndex(null)
+    setIsTyping(true)
+
+    // 3. Trigger new AI response based on edited text
+    setTimeout(() => {
+      let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
+      const lowerInput = editingText.toLowerCase()
+
+      for (const logic of CHAT_LOGIC) {
+        if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
+          matchedReply = logic.reply
+          break
+        }
+      }
+
+      setMessages(prev => [...prev, {
+        sender: 'ai',
+        text: matchedReply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }])
+      setIsTyping(false)
+    }, 1200)
+  }
+
+  const handleUndo = (idx) => {
+    // Filter out this user message (at idx) and the AI response that follows it (at idx + 1)
+    setMessages(prev => prev.filter((_, i) => i !== idx && i !== idx + 1))
+  }
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleSend()
   }
@@ -187,11 +242,81 @@ export default function ChatbotTab() {
                 >
                   {isUser ? Icons.user : Icons.bot}
                 </div>
-                <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
-                  <div style={{ whiteSpace: 'pre-line', fontSize: '0.88rem', lineHeight: 1.5 }}>{m.text}</div>
-                  <div className="chat-time" style={{ color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
-                    {m.time}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
+                    {editingIndex === idx ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '220px' }}>
+                        <textarea
+                          value={editingText}
+                          onChange={e => setEditingText(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'var(--bg-input)',
+                            color: 'var(--text-primary)',
+                            border: '1.5px solid var(--accent)',
+                            borderRadius: '6px',
+                            padding: '8px',
+                            fontSize: '0.85rem',
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            minHeight: '60px'
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setEditingIndex(null)}
+                            style={{ padding: '4px 10px', fontSize: '0.72rem', borderRadius: '4px' }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleSaveEdit(idx)}
+                            style={{ padding: '4px 10px', fontSize: '0.72rem', borderRadius: '4px' }}
+                          >
+                            Save & Submit
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ whiteSpace: 'pre-line', fontSize: '0.88rem', lineHeight: 1.5 }}>{m.text}</div>
+                        <div className="chat-time" style={{ color: isUser ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>
+                          {m.time}
+                        </div>
+                      </>
+                    )}
                   </div>
+
+                  {/* Actions (Edit / Undo) for User Prompts */}
+                  {isUser && editingIndex !== idx && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px', justifyContent: 'flex-end', opacity: 0.8 }}>
+                      <button
+                        type="button"
+                        title="Edit message"
+                        onClick={() => {
+                          setEditingIndex(idx)
+                          setEditingText(m.text)
+                        }}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem' }}
+                        onMouseOver={e => e.currentTarget.style.color = 'var(--accent)'}
+                        onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                      >
+                        {Icons.pencil} Edit
+                      </button>
+                      <button
+                        type="button"
+                        title="Undo message"
+                        onClick={() => handleUndo(idx)}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.72rem' }}
+                        onMouseOver={e => e.currentTarget.style.color = 'var(--sev-critical)'}
+                        onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                      >
+                        {Icons.undo} Undo
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
