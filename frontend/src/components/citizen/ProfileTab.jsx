@@ -6,8 +6,9 @@
  * Badges: Email Verified badge with checkmark
  * Settings: Toggles for Dark Mode & Push Notifications, Language Selection dropdown
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useStore from '../../store/useStore.js'
+import { googleLogin } from '../../api/civicgrid.js'
 
 const Icons = {
   user: (
@@ -41,18 +42,52 @@ export default function ProfileTab() {
   const [pushNotifs, setPushNotifs] = useState(true)
   const [language, setLanguage] = useState('en')
 
-  // Simulate Google Sign-In
-  const handleGoogleSignIn = () => {
-    const mockGoogleUser = {
-      id: 'google-user-123',
-      email: 'siddharth.sharma@gmail.com',
-      full_name: 'Siddharth Sharma',
-      role: 'citizen',
-      civic_trust_score: 310,
-      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
+  const handleGoogleCredentialResponse = async (response) => {
+    try {
+      const res = await googleLogin(response.credential)
+      const { access_token, user: loggedUser } = res.data
+      setAuth(loggedUser, access_token)
+    } catch (e) {
+      console.error("Google authentication failed on ProfileTab:", e)
     }
-    setAuth(mockGoogleUser, 'google-oauth-token-civicgrid')
   }
+
+  useEffect(() => {
+    if (!!token && !!user) return
+
+    const id = 'google-gsi-client-script'
+    let script = document.getElementById(id)
+    if (!script) {
+      script = document.createElement('script')
+      script.id = id
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      document.body.appendChild(script)
+    }
+
+    const initGoogle = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '477543265007-8m85s33bprqthscd77vhljqqt68c2r78.apps.googleusercontent.com',
+          callback: handleGoogleCredentialResponse,
+        })
+        const btnContainer = document.getElementById('profile-google-signin-btn')
+        if (btnContainer) {
+          window.google.accounts.id.renderButton(
+            btnContainer,
+            { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
+          )
+        }
+      }
+    }
+
+    script.onload = initGoogle
+
+    if (window.google) {
+      initGoogle()
+    }
+  }, [user, token])
 
   const handleSignOut = () => {
     logout()
@@ -119,10 +154,7 @@ export default function ProfileTab() {
         {/* Google Authentication Box */}
         {!isLoggedIn ? (
           <div style={{ padding: '20px 0 12px' }}>
-            <button className="google-btn" onClick={handleGoogleSignIn} style={{ borderRadius: '8px' }}>
-              <span className="google-logo" />
-              Sign in with Google
-            </button>
+            <div id="profile-google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
           </div>
         ) : null}
 

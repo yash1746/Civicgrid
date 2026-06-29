@@ -28,6 +28,85 @@ class UserResponse(BaseModel):
     created_at: str
 
 
+class GoogleLoginRequest(BaseModel):
+    google_token: str
+
+
+@router.post("/google")
+async def google_login(body: GoogleLoginRequest, db: Client = Depends(get_db)):
+    import httpx
+    # 1. Verify token with Google API
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://oauth2.googleapis.com/tokeninfo?id_token={body.google_token}",
+                timeout=10.0
+            )
+            if resp.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid Google OAuth token."
+                )
+            payload = resp.json()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to authenticate with Google: {str(e)}"
+        )
+
+    email = payload.get("email")
+    full_name = payload.get("name", "Google User")
+    picture = payload.get("picture")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account does not provide an email."
+        )
+
+    # 2. Check if user already exists
+    existing = db.table("users").select("*").eq("email", email).execute()
+    
+    if existing.data:
+        user = existing.data[0]
+        # Update user's avatar if they didn't have one and we got one from Google
+        if not user.get("avatar_url") and picture:
+            db.table("users").update({"avatar_url": picture}).eq("id", user["id"]).execute()
+            user["avatar_url"] = picture
+    else:
+        # Create a new user
+        user_data = {
+            "email": email,
+            "full_name": full_name,
+            "password_hash": None,  # Nullable password hash for Google Auth users
+            "role": "citizen",
+            "civic_trust_score": 0,
+            "avatar_url": picture
+        }
+        resp = db.table("users").insert(user_data).execute()
+        if not resp.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to register user via Google Sign-In."
+            )
+        user = resp.data[0]
+
+    # 3. Generate access token
+    token = create_access_token(data={"sub": user["id"], "role": user["role"]})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "role": user["role"],
+            "civic_trust_score": user["civic_trust_score"],
+            "avatar_url": user.get("avatar_url"),
+        },
+    }
+
+
 @router.post("/register", status_code=201)
 async def register(body: UserRegisterRequest, db: Client = Depends(get_db)):
     # Check email uniqueness

@@ -47,7 +47,7 @@ CREATE TABLE users (
   id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email               TEXT UNIQUE NOT NULL,
   full_name           TEXT NOT NULL,
-  password_hash       TEXT NOT NULL,
+  password_hash       TEXT,
   role                user_role NOT NULL DEFAULT 'citizen',
   civic_trust_score   INTEGER NOT NULL DEFAULT 0,
   avatar_url          TEXT,

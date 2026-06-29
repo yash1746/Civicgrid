@@ -3,9 +3,9 @@
  * Dual role selector: Citizen Hub vs Resolver Portal
  * Includes Demo Mode for UI preview without a backend.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login, register } from '../api/civicgrid.js'
+import { login, register, googleLogin } from '../api/civicgrid.js'
 import useStore from '../store/useStore.js'
 
 // ── Demo users (no backend needed) ────────────────────────────────────────
@@ -36,6 +36,57 @@ export default function Login() {
   const [error, setError] = useState(null)
   const { setAuth } = useStore()
   const navigate = useNavigate()
+
+  const handleGoogleCredentialResponse = async (response) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await googleLogin(response.credential)
+      const { access_token, user } = res.data
+      setAuth(user, access_token)
+      navigate(user.role === 'resolver' ? '/resolver' : '/citizen')
+    } catch (e) {
+      const msg = e.response?.data?.detail || e.message || 'Google authentication failed.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const id = 'google-gsi-client-script'
+    let script = document.getElementById(id)
+    if (!script) {
+      script = document.createElement('script')
+      script.id = id
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      document.body.appendChild(script)
+    }
+
+    const initGoogle = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '477543265007-8m85s33bprqthscd77vhljqqt68c2r78.apps.googleusercontent.com',
+          callback: handleGoogleCredentialResponse,
+        })
+        const btnContainer = document.getElementById('google-signin-btn')
+        if (btnContainer) {
+          window.google.accounts.id.renderButton(
+            btnContainer,
+            { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
+          )
+        }
+      }
+    }
+
+    script.onload = initGoogle
+
+    if (window.google) {
+      initGoogle()
+    }
+  }, [])
 
   // ── Demo Mode login (no backend required) ────────────────────────────
   const handleDemoLogin = (demoRole) => {
@@ -124,6 +175,11 @@ export default function Login() {
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Google Sign-In Button */}
+        <div style={{ marginBottom: '20px' }}>
+          <div id="google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
         </div>
 
         {/* ── Divider ───────────────────────────────────────────────── */}
