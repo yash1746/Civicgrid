@@ -129,8 +129,8 @@ export default function CitizenHub() {
     }
   }, [nearbyIssues.length, setNearbyIssues, setMyIssues])
 
-  // Calculate dynamic notification count based on user's active/pending tickets
-  const notifCount = myIssues.filter(ticket => ticket.status !== 'resolved' && ticket.status !== 'closed').length
+  // Calculate dynamic notification count representing all tickets in the tracking list
+  const notifCount = myIssues.length
 
   // Map tabs to screens
   const renderScreen = () => {
