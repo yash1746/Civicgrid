@@ -1,6 +1,7 @@
 """
 CivicGrid — Users API (Auth + Civic Trust Score)
 """
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from supabase import Client
@@ -134,9 +135,9 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Client = Depends(get_db),
 ):
-    resp = db.table("users").select("*").eq("email", form_data.username).single().execute()
-    user = resp.data
-    if not user or not verify_password(form_data.password, user["password_hash"]):
+    resp = db.table("users").select("*").eq("email", form_data.username).execute()
+    user = resp.data[0] if resp.data else None
+    if not user or not user.get("password_hash") or not verify_password(form_data.password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

@@ -8,23 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { login, register, googleLogin } from '../api/civicgrid.js'
 import useStore from '../store/useStore.js'
 
-// ── Demo users (no backend needed) ────────────────────────────────────────
-const DEMO_USERS = {
-  citizen: {
-    id: 'demo-citizen-001',
-    email: 'citizen@demo.civicgrid',
-    full_name: 'Aryan Demo',
-    role: 'citizen',
-    civic_trust_score: 175,
-  },
-  resolver: {
-    id: 'demo-resolver-001',
-    email: 'resolver@demo.civicgrid',
-    full_name: 'Priya Resolver',
-    role: 'resolver',
-    civic_trust_score: 520,
-  },
-}
+
 
 export default function Login() {
   const [mode, setMode] = useState('login')      // 'login' | 'register'
@@ -88,12 +72,7 @@ export default function Login() {
     }
   }, [role]) // Refresh Google sign-in config when the role changes!
 
-  // ── Demo Mode login (no backend required) ────────────────────────────
-  const handleDemoLogin = (demoRole) => {
-    const demoUser = DEMO_USERS[demoRole]
-    setAuth(demoUser, 'demo-token-civicgrid')
-    navigate(demoRole === 'resolver' ? '/resolver' : '/')
-  }
+
 
   // ── Real backend login ───────────────────────────────────────────────
   const handleSubmit = async (e) => {
@@ -160,48 +139,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* ── DEMO MODE BANNER ─────────────────────────────────────── */}
-        <div style={{
-          background: 'rgba(0,229,255,0.07)',
-          border: '1px solid rgba(0,229,255,0.25)',
-          borderRadius: '12px',
-          padding: '14px 16px',
-          marginBottom: '20px',
-        }}>
-          <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--civic-cyan)',
-                       marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            ⚡ Quick Demo — No Backend Required
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              id="demo-citizen-btn"
-              className="btn btn-ghost btn-sm"
-              style={{ borderColor: 'rgba(0,229,255,0.4)', color: 'var(--civic-cyan)',
-                       flexDirection: 'column', height: 'auto', padding: '10px 8px' }}
-              onClick={() => handleDemoLogin('citizen')}
-            >
-              <span style={{ fontSize: '1.2rem' }}>🏘️</span>
-              <span style={{ fontWeight: 700, marginTop: '3px' }}>Citizen Hub</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Map · Report · Timeline
-              </span>
-            </button>
-            <button
-              id="demo-resolver-btn"
-              className="btn btn-ghost btn-sm"
-              style={{ borderColor: 'rgba(124,58,237,0.4)', color: 'var(--civic-purple)',
-                       flexDirection: 'column', height: 'auto', padding: '10px 8px' }}
-              onClick={() => handleDemoLogin('resolver')}
-            >
-              <span style={{ fontSize: '1.2rem' }}>🔧</span>
-              <span style={{ fontWeight: 700, marginTop: '3px' }}>Resolver Portal</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Queue · SLA · Proof
-              </span>
-            </button>
-          </div>
-        </div>
-
         {/* Google Sign-In Button */}
         <div style={{ marginBottom: '20px' }}>
           <div id="google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
@@ -211,7 +148,7 @@ export default function Login() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-            or sign in with your account
+            or use email and password
           </span>
           <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
         </div>
