@@ -5,6 +5,7 @@
  * Text input field with Microphone icon for speech input
  * Suggested prompt chips for improved UX guidance
  * Support editing user messages and undoing message exchanges
+ * Image attachment & upload feature with thumbnail previews
  */
 import { useState, useEffect, useRef } from 'react'
 import useStore from '../../store/useStore.js'
@@ -47,6 +48,9 @@ const Icons = {
   ),
   undo: (
     <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+  ),
+  paperclip: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
   )
 }
 
@@ -57,12 +61,16 @@ export default function ChatbotTab() {
   const [isTyping, setIsTyping] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
 
+  // Image Upload State
+  const [selectedImage, setSelectedImage] = useState(null)
+
   // Edit Message States
   const [editingIndex, setEditingIndex] = useState(null)
   const [editingText, setEditingText] = useState('')
 
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -104,28 +112,47 @@ export default function ChatbotTab() {
     }
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSelectedImage(reader.result) // Base64 string
+      }
+      reader.readAsDataURL(file)
+    }
+    // Reset file input value so same file can be selected again
+    e.target.value = ''
+  }
+
   const handleSend = () => {
-    if (!inputVal.trim()) return
+    if (!inputVal.trim() && !selectedImage) return
 
     const newMsg = {
       sender: 'user',
       text: inputVal,
+      image: selectedImage,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
     setMessages(prev => [...prev, newMsg])
     setInputVal('')
+    setSelectedImage(null)
     setIsTyping(true)
 
     // Simulate AI response
     setTimeout(() => {
       let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
-      const lowerInput = newMsg.text.toLowerCase()
-
-      for (const logic of CHAT_LOGIC) {
-        if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
-          matchedReply = logic.reply
-          break
+      
+      if (newMsg.image) {
+        matchedReply = "I have received your image attachment. Our municipal routing system uses image classification to inspect civic hazards. This reported hazard is being evaluated by public safety dispatch."
+      } else {
+        const lowerInput = newMsg.text.toLowerCase()
+        for (const logic of CHAT_LOGIC) {
+          if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
+            matchedReply = logic.reply
+            break
+          }
         }
       }
 
@@ -189,12 +216,16 @@ export default function ChatbotTab() {
     // 3. Trigger new AI response based on edited text
     setTimeout(() => {
       let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
-      const lowerInput = editingText.toLowerCase()
-
-      for (const logic of CHAT_LOGIC) {
-        if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
-          matchedReply = logic.reply
-          break
+      
+      if (updatedMessages[idx].image) {
+        matchedReply = "I have received your image attachment. Our municipal routing system uses image classification to inspect civic hazards. This reported hazard is being evaluated by public safety dispatch."
+      } else {
+        const lowerInput = editingText.toLowerCase()
+        for (const logic of CHAT_LOGIC) {
+          if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
+            matchedReply = logic.reply
+            break
+          }
         }
       }
 
@@ -243,7 +274,26 @@ export default function ChatbotTab() {
                   {isUser ? Icons.user : Icons.bot}
                 </div>
                 <div className="chat-bubble-container">
-                  <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`}>
+                  <div className={`chat-bubble ${isUser ? 'user' : 'ai'}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                    
+                    {/* Render Image attachment inside bubble if exists */}
+                    {m.image && (
+                      <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px', marginBottom: '8px', maxWidth: '320px', maxHeight: '220px' }}>
+                        <img
+                          src={m.image}
+                          alt="Uploaded attachment"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            maxHeight: '220px',
+                            objectFit: 'cover',
+                            borderRadius: '12px',
+                            display: 'block'
+                          }}
+                        />
+                      </div>
+                    )}
+
                     {editingIndex === idx ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '220px' }}>
                         <textarea
@@ -391,16 +441,73 @@ export default function ChatbotTab() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* ── Image Upload Preview Thumbnail Bar ────────────────── */}
+        {selectedImage && (
+          <div style={{
+            padding: '10px 16px',
+            background: 'var(--bg-card-hover)',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            animation: 'fadeIn var(--t-fast)'
+          }}>
+            <div style={{ position: 'relative', width: '52px', height: '52px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border)', flexShrink: 0 }}>
+              <img src={selectedImage} alt="Attachment thumbnail preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                style={{
+                  position: 'absolute', top: '2px', right: '2px',
+                  width: '16px', height: '16px', borderRadius: '50%',
+                  background: 'rgba(15, 23, 42, 0.8)', color: '#fff',
+                  border: 'none', fontSize: '10px', fontWeight: 'bold',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                  boxShadow: 'var(--shadow-xs)'
+                }}
+                title="Clear attachment"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>Evidence Attached</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Will be uploaded when you press send</span>
+            </div>
+          </div>
+        )}
+
         {/* ── Chat Input Bar ─────────────────────────────────────── */}
         <div className="chat-input-bar">
+          
+          {/* File input for images */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept="image/*"
+            onChange={handleFileChange}
+          />
+
+          <button
+            type="button"
+            className="chat-mic"
+            onClick={() => fileInputRef.current.click()}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}
+            title="Attach image evidence"
+          >
+            {Icons.paperclip}
+          </button>
+
           <button
             className={`chat-mic ${isRecording ? 'recording' : ''}`}
             onClick={handleMicToggle}
-            style={{ background: isRecording ? 'var(--sev-critical)' : 'none', color: isRecording ? '#fff' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: isRecording ? 'var(--sev-critical)' : 'none', color: isRecording ? '#fff' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border)' }}
             title="Voice query"
           >
             {Icons.mic}
           </button>
+          
           <input
             className="chat-input"
             placeholder={isRecording ? 'Awaiting audio input...' : 'Ask about municipal procedures or report statuses...'}
