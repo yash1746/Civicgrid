@@ -1307,3 +1307,14 @@ button { font-family: var(--font); cursor: pointer; border: none; }
   background: var(--bg-card-hover) !important;
   color: var(--accent) !important;
 }
+.personal-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (min-width: 768px) {
+  .personal-stats-grid {
+    grid-template-columns: 1.2fr 2fr;
+  }
+}

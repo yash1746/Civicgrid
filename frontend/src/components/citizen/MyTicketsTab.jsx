@@ -141,8 +141,126 @@ export default function MyTicketsTab() {
     return map[status] ?? 0
   }
 
+  const totalCount = myIssues.length
+  const resolvedCount = myIssues.filter(t => t.status === 'resolved' || t.status === 'closed').length
+  const pendingCount = myIssues.filter(t => t.status !== 'resolved' && t.status !== 'closed').length
+  const resolutionRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 100
+  const civicScore = 100 + (totalCount * 10) + (resolvedCount * 20)
+
+  const getTierName = (score) => {
+    if (score < 120) return 'Contributor Tier'
+    if (score < 150) return 'Ambassador Tier'
+    return 'Guardian Tier'
+  }
+  const tierName = getTierName(civicScore)
+
   return (
     <div style={{ padding: '16px', minHeight: '100%' }}>
+      
+      {/* ── Personal Civic Stats Dashboard ────────────────────── */}
+      <div className="personal-stats-grid">
+        {/* Left Side: Score & Tier Card */}
+        <div style={{
+          background: 'linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%)',
+          borderRadius: '12px',
+          padding: '20px',
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          boxShadow: 'var(--shadow-md)',
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: '160px'
+        }}>
+          {/* Subtle background decoration */}
+          <div style={{ position: 'absolute', right: '-10px', top: '-10px', opacity: 0.12, color: '#fff' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+          </div>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.9 }}>
+              {tierName}
+            </span>
+            <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '4px 0 2px', lineHeight: 1 }}>
+              {civicScore} PTS
+            </h2>
+            <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 500 }}>
+              Civic Contribution Score
+            </span>
+          </div>
+          <div style={{ marginTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '4px', opacity: 0.9, fontWeight: 600 }}>
+              <span>Next Milestone</span>
+              <span>{Math.min(civicScore, 200)} / 200 PTS</span>
+            </div>
+            <div style={{ background: 'rgba(255, 255, 255, 0.2)', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ background: '#ffffff', height: '100%', width: `${Math.min((civicScore / 200) * 100, 100)}%`, borderRadius: '3px' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Registered Tickets Status Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+          
+          {/* Total Registered */}
+          <div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div className="flex-between">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>My Reports</span>
+              <span style={{ color: 'var(--accent)', display: 'flex' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </span>
+            </div>
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{totalCount}</div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Registered issues</span>
+            </div>
+          </div>
+
+          {/* Resolved */}
+          <div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div className="flex-between">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Resolved</span>
+              <span style={{ color: 'var(--status-resolved)', display: 'flex' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </span>
+            </div>
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{resolvedCount}</div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Resolved & closed</span>
+            </div>
+          </div>
+
+          {/* Pending Action */}
+          <div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div className="flex-between">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Pending</span>
+              <span style={{ color: 'var(--status-in-progress)', display: 'flex' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </span>
+            </div>
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{pendingCount}</div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Under SLA progress</span>
+            </div>
+          </div>
+
+          {/* Performance Rate */}
+          <div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div className="flex-between">
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Performance</span>
+              <span style={{ color: '#f59e0b', display: 'flex' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+              </span>
+            </div>
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{resolutionRate}%</div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Resolution rate</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <div className="flex-between" style={{ marginBottom: '16px' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Track Reports</h3>
         <button onClick={loadIssues} className="btn btn-ghost btn-sm" style={{ padding: '6px 12px', borderRadius: '6px' }}>
