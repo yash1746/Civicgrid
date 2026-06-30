@@ -27,7 +27,7 @@ async def query_chatbot(body: ChatbotQueryRequest):
         genai.configure(api_key=settings.GEMINI_API_KEY)
         # Use gemini-1.5-flash for super-fast interactive chat responses
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name=settings.GEMINI_MODEL,
             system_instruction=SYSTEM_INSTRUCTION
         )
         
