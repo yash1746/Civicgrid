@@ -58,7 +58,7 @@ export const login = (email, password) => {
 }
 
 export const register = (data) => api.post('/api/v1/users/register', data)
-export const googleLogin = (googleToken, role = 'citizen') => api.post('/api/v1/users/google', { google_token: googleToken, role })
+export const googleLogin = (googleToken, role = 'citizen', mode = 'login') => api.post('/api/v1/users/google', { google_token: googleToken, role, mode })
 export const getMe = () => api.get('/api/v1/users/me')
 export const getMyIssues = () => api.get('/api/v1/users/me/issues')
 

@@ -32,6 +32,7 @@ class UserResponse(BaseModel):
 class GoogleLoginRequest(BaseModel):
     google_token: str
     role: Optional[str] = "citizen"
+    mode: Optional[str] = "login"  # login | register
 
 
 @router.post("/google")
@@ -69,13 +70,12 @@ async def google_login(body: GoogleLoginRequest, db: Client = Depends(get_db)):
     # 2. Check if user already exists
     existing = db.table("users").select("*").eq("email", email).execute()
     
-    if existing.data:
-        user = existing.data[0]
-        # Update user's avatar if they didn't have one and we got one from Google
-        if not user.get("avatar_url") and picture:
-            db.table("users").update({"avatar_url": picture}).eq("id", user["id"]).execute()
-            user["avatar_url"] = picture
-    else:
+    if body.mode == "register":
+        if existing.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered. Please Sign In instead."
+            )
         # Create a new user
         user_data = {
             "email": email,
@@ -92,6 +92,18 @@ async def google_login(body: GoogleLoginRequest, db: Client = Depends(get_db)):
                 detail="Failed to register user via Google Sign-In."
             )
         user = resp.data[0]
+    else:
+        # Sign In mode
+        if not existing.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No account found with this email. Please Register first."
+            )
+        user = existing.data[0]
+        # Update user's avatar if they didn't have one and we got one from Google
+        if not user.get("avatar_url") and picture:
+            db.table("users").update({"avatar_url": picture}).eq("id", user["id"]).execute()
+            user["avatar_url"] = picture
 
     # 3. Generate access token
     token = create_access_token(data={"sub": user["id"], "role": user["role"]})
