@@ -68,4 +68,6 @@ export const getWorkQueue = (lat, lng) =>
 
 export const acceptIssue = (id) => api.post(`/api/v1/resolver/issues/${id}/accept`)
 
+export const queryChatbot = (text, imageBase64 = null) => api.post('/api/v1/chatbot/query', { text, image_base64: imageBase64 })
+
 export default api

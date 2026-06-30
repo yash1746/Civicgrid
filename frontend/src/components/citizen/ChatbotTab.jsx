@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import useStore from '../../store/useStore.js'
+import { queryChatbot } from '../../api/civicgrid.js'
 
 const SYSTEM_INTRO = {
   sender: 'ai',
@@ -151,29 +152,25 @@ export default function ChatbotTab() {
     setSelectedImage(null)
     setIsTyping(true)
 
-    // Simulate AI response
-    setTimeout(() => {
-      let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
-      
-      if (newMsg.image) {
-        matchedReply = "I have received your image attachment. Our municipal routing system uses image classification to inspect civic hazards. This reported hazard is being evaluated by public safety dispatch."
-      } else {
-        const lowerInput = newMsg.text.toLowerCase()
-        for (const logic of CHAT_LOGIC) {
-          if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
-            matchedReply = logic.reply
-            break
-          }
-        }
-      }
-
-      setMessages(prev => [...prev, {
-        sender: 'ai',
-        text: matchedReply,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }])
-      setIsTyping(false)
-    }, 1200)
+    queryChatbot(newMsg.text, newMsg.image)
+      .then(res => {
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: res.data.reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }])
+      })
+      .catch(err => {
+        const errMsg = err.response?.data?.detail || err.message || 'I am having trouble connecting to my brain right now.'
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `⚠️ Error: ${errMsg}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }])
+      })
+      .finally(() => {
+        setIsTyping(false)
+      })
   }
 
   const handleQuickPromptClick = (text) => {
@@ -186,24 +183,25 @@ export default function ChatbotTab() {
     setMessages(prev => [...prev, newMsg])
     setIsTyping(true)
 
-    setTimeout(() => {
-      let matchedReply = "I am trained on municipal routing and incident resolution guidelines. Please specify your query regarding tickets, report procedures, or system SLAs."
-      const lowerInput = text.toLowerCase()
-
-      for (const logic of CHAT_LOGIC) {
-        if (logic.keywords.some(keyword => lowerInput.includes(keyword))) {
-          matchedReply = logic.reply
-          break
-        }
-      }
-
-      setMessages(prev => [...prev, {
-        sender: 'ai',
-        text: matchedReply,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }])
-      setIsTyping(false)
-    }, 1000)
+    queryChatbot(text, null)
+      .then(res => {
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: res.data.reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }])
+      })
+      .catch(err => {
+        const errMsg = err.response?.data?.detail || err.message || 'I am having trouble connecting to my brain right now.'
+        setMessages(prev => [...prev, {
+          sender: 'ai',
+          text: `⚠️ Error: ${errMsg}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }])
+      })
+      .finally(() => {
+        setIsTyping(false)
+      })
   }
 
   const handleSaveEdit = (idx) => {
